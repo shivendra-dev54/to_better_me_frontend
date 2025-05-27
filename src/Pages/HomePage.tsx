@@ -2,7 +2,7 @@ import { Link } from "react-router";
 
 const HomePage = () => {
   return (
-    <div className="flex flex-col items-center justify-center text-center px-4 py-10 min-h-full bg-black">
+    <div className="flex flex-col items-center justify-center select-none text-center px-4 py-10 min-h-full bg-black">
       <h1 className="text-9xl select-none text-shine mb-10">
         To better me...
       </h1>

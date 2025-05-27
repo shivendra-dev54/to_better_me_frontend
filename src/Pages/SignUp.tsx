@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router";
+const baseUrl = import.meta.env.VITE_BASE_URL;
 
 const SignUp = () => {
   const navigate = useNavigate();
@@ -12,7 +13,7 @@ const SignUp = () => {
     const password = formData.get("password");
 
     
-    fetch("https://to-better-me-backend.onrender.com/api/auth/sign_up", {
+    fetch(`${baseUrl}/api/auth/sign_up`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

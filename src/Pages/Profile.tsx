@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+const baseUrl = import.meta.env.VITE_BASE_URL;
 
 import type { TooltipProps } from 'recharts';
 
@@ -57,7 +58,7 @@ const Profile: React.FC = () => {
   const fetchUserData = async () => {
     try {
       const token = localStorage.getItem("authToken");
-      const response = await fetch("https://to-better-me-backend.onrender.com/api/user/get_current", {
+      const response = await fetch(`${baseUrl}/api/user/get_current`, {
         method: "GET",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -80,7 +81,7 @@ const Profile: React.FC = () => {
   const fetchSleepData = async () => {
     try {
       const token = localStorage.getItem("authToken");
-      const response = await fetch("https://to-better-me-backend.onrender.com/api/user/get_all_entries", {
+      const response = await fetch(`${baseUrl}/api/user/get_all_entries`, {
         headers: {
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -155,7 +156,7 @@ const Profile: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center text-center px-4 py-10 min-h-full bg-black">
+      <div className="flex flex-col items-center justify-center text-center px-4 py-10 min-h-full bg-black ">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         <p className="text-white mt-4">Loading profile...</p>
       </div>
@@ -164,7 +165,7 @@ const Profile: React.FC = () => {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center text-center px-4 py-10 min-h-full bg-black">
+      <div className="flex flex-col items-center justify-center text-center px-4 py-10 min-h-full bg-black ">
         <p className="text-red-400 text-xl">{error}</p>
         <button 
           onClick={() => {
@@ -186,7 +187,7 @@ const Profile: React.FC = () => {
       <div className="max-w-6xl mx-auto space-y-8">
         {/* User Profile Section */}
         {user && (
-          <div className="bg-gradient-to-br from-slate-800 via-gray-950 to-slate-800 border border-slate-600 rounded-xl p-6 shadow-xl">
+          <div className="bg-gradient-to-br from-slate-800 via-gray-950 to-slate-800 border border-slate-600 rounded-xl p-6 shadow-xl ">
             <h1 className="text-4xl font-bold text-center mb-6">User Profile</h1>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-3">
@@ -202,7 +203,7 @@ const Profile: React.FC = () => {
               <div className="space-y-3">
                 <div className="flex items-center space-x-3">
                   <span className="text-slate-300 font-semibold">Status:</span>
-                  <span className={`text-lg font-semibold ${user.isSpecial ? 'text-yellow-400' : 'text-green-400'}`}>
+                  <span className={`text-lg font-semibold ${user.isSpecial ? 'text-green-400' : 'text-yellow-400'}`}>
                     {user.isSpecial ? 'Special User' : 'Regular User'}
                   </span>
                 </div>
@@ -217,7 +218,7 @@ const Profile: React.FC = () => {
 
         {/* Sleep Data Chart Section */}
         <div className="bg-gradient-to-br from-slate-800 via-gray-950 to-slate-800 border border-slate-600 rounded-xl p-6 shadow-xl">
-          <h2 className="text-3xl font-bold text-center mb-6">30-Day Sleep Analysis</h2>
+          <h2 className="text-3xl font-bold text-center mb-6 ">30-Day Sleep Analysis</h2>
           
           {chartData.length > 0 ? (
             <div className="space-y-6">
@@ -253,7 +254,7 @@ const Profile: React.FC = () => {
               </div>
 
               {/* Legend */}
-              <div className="flex justify-center space-x-6 text-sm">
+              <div className="flex justify-center space-x-6 text-sm ">
                 <div className="flex items-center space-x-2">
                   <div className="w-4 h-4 bg-green-500 rounded"></div>
                   <span className="text-gray-300">Optimal Sleep (7-8 hours)</span>
@@ -266,16 +267,16 @@ const Profile: React.FC = () => {
 
               {/* Selected Entry Details */}
               {selectedEntry && (
-                <div className="bg-gray-800 border border-gray-600 rounded-lg p-4 mt-6">
+                <div className="bg-gray-800 border border-gray-600 rounded-lg p-4 mt-6 ">
                   <h3 className="text-xl font-semibold mb-3 text-blue-400">
                     Sleep Details - {selectedEntry.formattedDate}
                   </h3>
-                  <div className="space-y-2">
+                  <div className="space-y-2 select-text">
                     <p className="text-white">
-                      <span className="text-slate-300 font-semibold">Sleep Duration:</span> {selectedEntry.sleepHours} hours
+                      <span className="text-slate-300 font-semibold ">Sleep Duration:</span> {selectedEntry.sleepHours} hours
                     </p>
                     <p className="text-white">
-                      <span className="text-slate-300 font-semibold">Summary:</span> {selectedEntry.summary || 'No summary available'}
+                      <span className="text-slate-300 font-semibold ">Summary:</span> {selectedEntry.summary || 'No summary available'}
                     </p>
                     <p className="text-white">
                       <span className="text-slate-300 font-semibold">Status:</span> 
@@ -303,7 +304,7 @@ const Profile: React.FC = () => {
 
         {/* Summary Statistics */}
         {chartData.length > 0 && (
-          <div className="bg-gradient-to-br from-slate-800 via-gray-950 to-slate-800 border border-slate-600 rounded-xl p-6 shadow-xl">
+          <div className="bg-gradient-to-br from-slate-800 via-gray-950 to-slate-800 border border-slate-600 rounded-xl p-6 shadow-xl ">
             <h3 className="text-2xl font-bold text-center mb-4">Sleep Statistics</h3>
             <div className="grid md:grid-cols-4 gap-4 text-center">
               <div className="bg-gray-800 rounded-lg p-4">

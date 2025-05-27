@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
+const baseUrl = import.meta.env.VITE_BASE_URL;
 
 interface SleepEntry {
     start: string;
     end: string;
-    isExtra: boolean;
 };
 
 
@@ -16,7 +16,7 @@ interface MainPageProps {
 const MainPage = ({isLoggedIn}: MainPageProps) => {
     const [selectedDay, setSelectedDay] = useState<"today" | "yesterday">("today");
     const [sleepEntries, setSleepEntries] = useState<SleepEntry[]>([
-        { start: "", end: "", isExtra: false }
+        { start: "", end: ""}
     ]);
     const [dailySummary, setDailySummary] = useState("");
 
@@ -42,7 +42,7 @@ const MainPage = ({isLoggedIn}: MainPageProps) => {
 
 
     const addSleepEntry = () => {
-        setSleepEntries([...sleepEntries, { start: "", end: "", isExtra: false }]);
+        setSleepEntries([...sleepEntries, { start: "", end: ""}]);
     };
 
     const handleSubmit = () => {
@@ -50,7 +50,7 @@ const MainPage = ({isLoggedIn}: MainPageProps) => {
         if (selectedDay === "yesterday") baseDate.setDate(baseDate.getDate() - 1);
         baseDate.setHours(0, 0, 0, 0); // Set to start of the day
 
-        const sleepHours = sleepEntries.map(({ start, end, isExtra }) => {
+        const sleepHours = sleepEntries.map(({ start, end}) => {
             const startDate = new Date(baseDate);
             const endDate = new Date(baseDate);
 
@@ -62,14 +62,13 @@ const MainPage = ({isLoggedIn}: MainPageProps) => {
             if (endDate < startDate) endDate.setDate(endDate.getDate() + 1);
 
 
-            setSleepEntries([{ start: "", end: "", isExtra: false }]);
+            setSleepEntries([{ start: "", end: ""}]);
             setDailySummary("");
             setSelectedDay("today");
 
             return {
                 start: startDate.toISOString(),
                 end: endDate.toISOString(),
-                isExtra: !!isExtra,
             };
         });
 
@@ -80,7 +79,7 @@ const MainPage = ({isLoggedIn}: MainPageProps) => {
         };
 
         // send request of entry to backend
-        fetch("https://to-better-me-backend.onrender.com/api/user/daily_entry", {
+        fetch(`${baseUrl}/api/user/daily_entry`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -104,8 +103,8 @@ const MainPage = ({isLoggedIn}: MainPageProps) => {
     };
 
     return (
-        <div className="min-h-full flex flex-col items-center justify-center text-white px-4 py-10 gradient-animate text-center">
-            <div className="w-full max-w-xl p-6 rounded-xl bg-gradient-to-br from-slate-800 via-gray-950 to-slate-800 border border-slate-600 shadow-xl">
+        <div className="min-h-full flex flex-col items-center justify-center select-none text-white px-4 py-10 gradient-animate text-center">
+            <div className="select-none w-full max-w-xl p-6 rounded-xl bg-gradient-to-br from-slate-800 via-gray-950 to-slate-800 border border-slate-600 shadow-xl">
                 <h1 className="text-4xl font-bold mb-6">Daily Tracker</h1>
 
                 {/* Day Selector */}
@@ -152,17 +151,6 @@ const MainPage = ({isLoggedIn}: MainPageProps) => {
                                     }
                                     className="px-3 py-2 rounded-md text-white bg-gray-800 border border-gray-600 focus:outline-none"
                                 />
-                            </div>
-                            <div className="flex items-center gap-2 mt-2">
-                                <input
-                                    type="checkbox"
-                                    checked={entry.isExtra}
-                                    onChange={(e) =>
-                                        handleEntryChange(index, "isExtra", e.target.checked)
-                                    }
-                                    className="accent-emerald-500 w-4 h-4"
-                                />
-                                <label className="text-sm text-slate-300">Extra Sleep</label>
                             </div>
                         </div>
                     ))}

@@ -16,7 +16,7 @@ const Navbar = ({ isLoggedIn, setIsLoggedIn }: NavbarProps) => {
   };
 
   return (
-    <nav className="h-16 bg-black  text-white flex items-center justify-center px-4 shadow-md">
+    <nav className="h-16 bg-black  text-white flex items-center justify-center px-4 shadow-md select-none">
       <div className="flex w-screen">
         <Link to="/" className="p-2 text-2xl text-center flex items-center">
           Heart

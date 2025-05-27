@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router";
+const baseUrl = import.meta.env.VITE_BASE_URL;
 
 interface SignInProps {
   setIsLoggedIn: (isLoggedIn: boolean) => void; // Update the type to accept a boolean
@@ -16,7 +17,7 @@ const SignIn: React.FC<SignInProps> = ({ setIsLoggedIn }) => {
     const password = formData.get("password");
 
     // Replace with your API endpoint
-    fetch("https://to-better-me-backend.onrender.com/api/auth/sign_in", {
+    fetch(`${baseUrl}/api/auth/sign_in`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
