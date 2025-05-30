@@ -49,6 +49,9 @@ const Profile: React.FC = () => {
   const [selectedEntry, setSelectedEntry] = useState<ChartData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editSummary, setEditSummary] = useState("");
+  const [editSleepHours, setEditSleepHours] = useState<number>(0);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     fetchUserData();
@@ -117,15 +120,15 @@ const Profile: React.FC = () => {
       const totalSleepHours = calculateSleepHours(entry.sleepHours);
       const isOptimal = totalSleepHours >= 7 && totalSleepHours <= 8;
       const date = new Date(entry.date);
-      
+
       return {
         date: entry.date,
         sleepHours: parseFloat(totalSleepHours.toFixed(1)),
         summary: entry.summary,
         color: isOptimal ? '#10B981' : '#EF4444', // Green if optimal, red otherwise
-        formattedDate: date.toLocaleDateString('en-US', { 
-          month: 'short', 
-          day: 'numeric' 
+        formattedDate: date.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric'
         })
       };
     });
@@ -137,8 +140,69 @@ const Profile: React.FC = () => {
 
   const handleBarClick = (data: ChartData) => {
     setSelectedEntry(data);
+    setEditSummary(data.summary);
+    setEditSleepHours(data.sleepHours);
+    setIsEditing(false); // Reset editing state when selecting new entry
   };
 
+  const handleEditClick = () => {
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    // Reset edit values to original
+    if (selectedEntry) {
+      setEditSummary(selectedEntry.summary);
+      setEditSleepHours(selectedEntry.sleepHours);
+    }
+  };
+
+  const handleUpdateEntry = async () => {
+    try {
+      const token = localStorage.getItem("authToken");
+      const entryToUpdate = sleepData.find(e => e.date === selectedEntry?.date);
+
+      if (!entryToUpdate) {
+        alert("Entry not found");
+        return;
+      }
+
+      const finalData: { date: string; summary: string; sleepHours: SleepHour[] } = {
+        date: new Date(entryToUpdate.date).toISOString(),
+        summary: editSummary,
+        sleepHours: [], // You can calculate or pass proper structure if needed
+      };
+
+      // Optional: Adjust this logic if you're actually editing `sleepHours` array
+      const totalSleep = editSleepHours;
+      finalData.sleepHours = entryToUpdate.sleepHours.map(s => ({
+        ...s,
+        end: new Date(new Date(s.start).getTime() + (totalSleep / entryToUpdate.sleepHours.length) * 3600000).toISOString(),
+      })); 
+
+      const response = await fetch(`${baseUrl}/api/user/update_entry/${entryToUpdate._id}`, {
+        method: "PUT",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(finalData),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update entry");
+      }
+
+      alert("Entry updated successfully!");
+      setIsEditing(false);
+      setSelectedEntry(null);
+      fetchSleepData(); // refresh chart
+    } catch (error) {
+      console.error("Update error:", error);
+      alert("Error updating entry");
+    }
+  };
 
   const CustomTooltip: React.FC<TooltipProps<number, string>> = ({ active, payload }) => {
     if (active && payload && payload.length) {
@@ -167,7 +231,7 @@ const Profile: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center text-center px-4 py-10 min-h-full bg-black ">
         <p className="text-red-400 text-xl">{error}</p>
-        <button 
+        <button
           onClick={() => {
             setError(null);
             setLoading(true);
@@ -183,7 +247,7 @@ const Profile: React.FC = () => {
   }
 
   return (
-    <div className="min-h-full bg-black text-white p-6">
+    <div className=" min-h-full bg-black text-white p-6">
       <div className="max-w-6xl mx-auto space-y-8">
         {/* User Profile Section */}
         {user && (
@@ -219,29 +283,29 @@ const Profile: React.FC = () => {
         {/* Sleep Data Chart Section */}
         <div className="bg-gradient-to-br from-slate-800 via-gray-950 to-slate-800 border border-slate-600 rounded-xl p-6 shadow-xl">
           <h2 className="text-3xl font-bold text-center mb-6 ">30-Day Sleep Analysis</h2>
-          
+
           {chartData.length > 0 ? (
             <div className="space-y-6">
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis 
-                      dataKey="formattedDate" 
+                    <XAxis
+                      dataKey="formattedDate"
                       stroke="#9CA3AF"
                       fontSize={12}
                       angle={-45}
                       textAnchor="end"
                       height={60}
                     />
-                    <YAxis 
+                    <YAxis
                       stroke="#9CA3AF"
                       fontSize={12}
                       label={{ value: 'Sleep Hours', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
                     />
                     <Tooltip content={<CustomTooltip />} />
-                    <Bar 
-                      dataKey="sleepHours" 
+                    <Bar
+                      dataKey="sleepHours"
                       cursor="pointer"
                       onClick={handleBarClick}
                     >
@@ -268,29 +332,93 @@ const Profile: React.FC = () => {
               {/* Selected Entry Details */}
               {selectedEntry && (
                 <div className="bg-gray-800 border border-gray-600 rounded-lg p-4 mt-6 ">
-                  <h3 className="text-xl font-semibold mb-3 text-blue-400">
-                    Sleep Details - {selectedEntry.formattedDate}
-                  </h3>
-                  <div className="space-y-2 select-text">
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-xl font-semibold text-blue-400">
+                      Sleep Details - {selectedEntry.formattedDate}
+                    </h3>
+                    {!isEditing && (
+                      <button
+                        onClick={handleEditClick}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-300 text-sm"
+                      >
+                        Edit Entry
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-3">
                     <p className="text-white">
-                      <span className="text-slate-300 font-semibold ">Sleep Duration:</span> {selectedEntry.sleepHours} hours
+                      <span className="text-slate-300 font-semibold">Sleep Duration:</span> {selectedEntry.sleepHours} hours
                     </p>
+                    
                     <p className="text-white">
-                      <span className="text-slate-300 font-semibold ">Summary:</span> {selectedEntry.summary || 'No summary available'}
-                    </p>
-                    <p className="text-white">
-                      <span className="text-slate-300 font-semibold">Status:</span> 
+                      <span className="text-slate-300 font-semibold">Status:</span>
                       <span className={`ml-2 font-semibold ${selectedEntry.color === '#10B981' ? 'text-green-400' : 'text-red-400'}`}>
                         {selectedEntry.color === '#10B981' ? 'Optimal Sleep' : 'Sub-optimal Sleep'}
                       </span>
                     </p>
+
+                    {/* Summary Section */}
+                    <div className="space-y-2">
+                      <span className="text-slate-300 font-semibold block">Summary:</span>
+                      {!isEditing ? (
+                        <p className="text-white bg-gray-700 p-3 rounded-md border border-gray-600 min-h-[80px] select-text">
+                          {selectedEntry.summary || "No summary available"}
+                        </p>
+                      ) : (
+                        <textarea
+                          value={editSummary}
+                          onChange={(e) => setEditSummary(e.target.value)}
+                          className="w-full p-3 bg-gray-700 text-white rounded-md resize-none border border-gray-600 min-h-[80px]"
+                          rows={3}
+                          placeholder="Enter your sleep summary..."
+                        />
+                      )}
+                    </div>
+
+                    {/* Sleep Hours Section - Only show in edit mode */}
+                    {isEditing && (
+                      <div className="space-y-2">
+                        <label className="block text-slate-300 font-semibold">Sleep Hours (total):</label>
+                        <input
+                          type="number"
+                          value={editSleepHours}
+                          onChange={(e) => setEditSleepHours(parseFloat(e.target.value))}
+                          className="w-full p-2 bg-gray-700 text-white rounded-md border border-gray-600"
+                          step="0.1"
+                          min="0"
+                          max="24"
+                        />
+                      </div>
+                    )}
+
+                    {/* Action Buttons */}
+                    <div className="flex space-x-3 pt-3">
+                      {isEditing ? (
+                        <>
+                          <button
+                            onClick={handleUpdateEntry}
+                            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition duration-300"
+                          >
+                            Save Changes
+                          </button>
+                          <button
+                            onClick={handleCancelEdit}
+                            className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition duration-300"
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => setSelectedEntry(null)}
+                          className="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition duration-300"
+                        >
+                          Close Details
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <button 
-                    onClick={() => setSelectedEntry(null)}
-                    className="mt-3 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition duration-300"
-                  >
-                    Close Details
-                  </button>
                 </div>
               )}
             </div>

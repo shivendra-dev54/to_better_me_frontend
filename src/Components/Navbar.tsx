@@ -6,7 +6,6 @@ interface NavbarProps {
 }
 
 const Navbar = ({ isLoggedIn, setIsLoggedIn }: NavbarProps) => {
-
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -16,35 +15,51 @@ const Navbar = ({ isLoggedIn, setIsLoggedIn }: NavbarProps) => {
   };
 
   return (
-    <nav className="h-16 bg-black  text-white flex items-center justify-center px-4 shadow-md select-none">
-      <div className="flex w-screen">
-        <Link to="/" className="p-2 text-2xl text-center flex items-center">
+    <nav className="h-16 bg-gradient-to-b from-black via-[#1e293b] to-[#031634] text-white flex items-center justify-between px-4 shadow-md border-b border-slate-700">
+      <div className="text-xl font-bold tracking-wide">
+        <Link to="/" className="hover:text-emerald-400 transition duration-300">
           Heart
         </Link>
-        <div className="ml-auto flex">
-          {isLoggedIn ? (
-            <>
-              <Link to="/main_page" className="p-6">
-                Home
-              </Link>
-              <Link to="/profile" className="p-6">
-                Profile
-              </Link>
-              <button onClick={handleLogout} className="p-6">
-                Logout
-              </button>
-            </>
-          ) : (
-            <>
-              <Link to="/sign_in" className="p-6">
-                Sign In
-              </Link>
-              <Link to="/sign_up" className="p-6">
-                Sign Up
-              </Link>
-            </>
-          )}
-        </div>
+      </div>
+
+      <div className="flex space-x-4 text-sm sm:text-base">
+        {isLoggedIn ? (
+          <>
+            <Link
+              to="/main_page"
+              className="hover:text-blue-400 transition duration-300"
+            >
+              Home
+            </Link>
+            <Link
+              to="/profile"
+              className="hover:text-blue-400 transition duration-300"
+            >
+              Profile
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="hover:text-red-400 transition duration-300"
+            >
+              Logout
+            </button>
+          </>
+        ) : (
+          <>
+            <Link
+              to="/sign_in"
+              className="hover:text-emerald-400 transition duration-300"
+            >
+              Sign In
+            </Link>
+            <Link
+              to="/sign_up"
+              className="hover:text-emerald-400 transition duration-300"
+            >
+              Sign Up
+            </Link>
+          </>
+        )}
       </div>
     </nav>
   );

@@ -103,7 +103,7 @@ const MainPage = ({isLoggedIn}: MainPageProps) => {
     };
 
     return (
-        <div className="min-h-full flex flex-col items-center justify-center select-none text-white px-4 py-10 gradient-animate text-center">
+        <div className="min-h-full flex flex-col items-center justify-center select-none text-white px-4 py-10 bg-slate-950 text-center">
             <div className="select-none w-full max-w-xl p-6 rounded-xl bg-gradient-to-br from-slate-800 via-gray-950 to-slate-800 border border-slate-600 shadow-xl">
                 <h1 className="text-4xl font-bold mb-6">Daily Tracker</h1>
 
