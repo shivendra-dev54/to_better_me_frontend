@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 const baseUrl = import.meta.env.VITE_BASE_URL;
 
@@ -45,7 +45,6 @@ interface ChartData {
 const Profile: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [sleepData, setSleepData] = useState<SleepEntry[]>([]);
-  const [chartData, setChartData] = useState<ChartData[]>([]);
   const [selectedEntry, setSelectedEntry] = useState<ChartData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,12 +52,13 @@ const Profile: React.FC = () => {
   const [editSleepHours, setEditSleepHours] = useState<number>(0);
   const [isEditing, setIsEditing] = useState(false);
 
+  // Fixed useEffect - added dependency array to prevent infinite calls
   useEffect(() => {
     fetchUserData();
     fetchSleepData();
-  });
+  }, []); // Empty dependency array means this runs only once on mount
 
-  const fetchUserData = async () => {
+  const fetchUserData = useCallback(async () => {
     try {
       const token = localStorage.getItem("authToken");
       const response = await fetch(`${baseUrl}/api/user/get_current`, {
@@ -70,7 +70,7 @@ const Profile: React.FC = () => {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch user data, ${sleepData}`);
+        throw new Error(`Failed to fetch user data`); // Fixed: removed sleepData reference
       }
 
       const data: ApiResponse = await response.json();
@@ -79,9 +79,9 @@ const Profile: React.FC = () => {
       setError("Failed to load user data");
       console.error("Error fetching user data:", err);
     }
-  };
+  }, []); // No dependencies needed
 
-  const fetchSleepData = async () => {
+  const fetchSleepData = useCallback(async () => {
     try {
       const token = localStorage.getItem("authToken");
       const response = await fetch(`${baseUrl}/api/user/get_all_entries`, {
@@ -97,26 +97,27 @@ const Profile: React.FC = () => {
 
       const data: SleepEntry[] = await response.json();
       setSleepData(data);
-      processChartData(data);
     } catch (err) {
       setError("Failed to load sleep data");
       console.error("Error fetching sleep data:", err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []); // No dependencies needed
 
-  const calculateSleepHours = (sleepHours: SleepHour[]): number => {
+  // Memoized calculation functions to prevent unnecessary recalculations
+  const calculateSleepHours = useCallback((sleepHours: SleepHour[]): number => {
     return sleepHours.reduce((total, sleep) => {
       const start = new Date(sleep.start);
       const end = new Date(sleep.end);
       const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
       return total + hours;
     }, 0);
-  };
+  }, []);
 
-  const processChartData = (data: SleepEntry[]) => {
-    const processedData = data.map(entry => {
+  // Memoized chart data processing
+  const chartData = useMemo(() => {
+    const processedData = sleepData.map(entry => {
       const totalSleepHours = calculateSleepHours(entry.sleepHours);
       const isOptimal = totalSleepHours >= 7 && totalSleepHours <= 8;
       const date = new Date(entry.date);
@@ -125,7 +126,7 @@ const Profile: React.FC = () => {
         date: entry.date,
         sleepHours: parseFloat(totalSleepHours.toFixed(1)),
         summary: entry.summary,
-        color: isOptimal ? '#10B981' : '#EF4444', // Green if optimal, red otherwise
+        color: isOptimal ? '#10B981' : '#EF4444',
         formattedDate: date.toLocaleDateString('en-US', {
           month: 'short',
           day: 'numeric'
@@ -134,31 +135,46 @@ const Profile: React.FC = () => {
     });
 
     // Sort by date to ensure proper order
-    processedData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    setChartData(processedData);
-  };
+    return processedData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }, [sleepData, calculateSleepHours]);
 
-  const handleBarClick = (data: ChartData) => {
+  // Memoized statistics calculations
+  const statistics = useMemo(() => {
+    if (chartData.length === 0) return null;
+
+    const totalDays = chartData.length;
+    const optimalDays = chartData.filter(d => d.color === '#10B981').length;
+    const averageSleep = chartData.reduce((sum, d) => sum + d.sleepHours, 0) / chartData.length;
+    const successRate = Math.round((optimalDays / totalDays) * 100);
+
+    return {
+      totalDays,
+      optimalDays,
+      averageSleep: averageSleep.toFixed(1),
+      successRate
+    };
+  }, [chartData]);
+
+  const handleBarClick = useCallback((data: ChartData) => {
     setSelectedEntry(data);
     setEditSummary(data.summary);
     setEditSleepHours(data.sleepHours);
-    setIsEditing(false); // Reset editing state when selecting new entry
-  };
-
-  const handleEditClick = () => {
-    setIsEditing(true);
-  };
-
-  const handleCancelEdit = () => {
     setIsEditing(false);
-    // Reset edit values to original
+  }, []);
+
+  const handleEditClick = useCallback(() => {
+    setIsEditing(true);
+  }, []);
+
+  const handleCancelEdit = useCallback(() => {
+    setIsEditing(false);
     if (selectedEntry) {
       setEditSummary(selectedEntry.summary);
       setEditSleepHours(selectedEntry.sleepHours);
     }
-  };
+  }, [selectedEntry]);
 
-  const handleUpdateEntry = async () => {
+  const handleUpdateEntry = useCallback(async () => {
     try {
       const token = localStorage.getItem("authToken");
       const entryToUpdate = sleepData.find(e => e.date === selectedEntry?.date);
@@ -171,10 +187,9 @@ const Profile: React.FC = () => {
       const finalData: { date: string; summary: string; sleepHours: SleepHour[] } = {
         date: new Date(entryToUpdate.date).toISOString(),
         summary: editSummary,
-        sleepHours: [], // You can calculate or pass proper structure if needed
+        sleepHours: [], 
       };
 
-      // Optional: Adjust this logic if you're actually editing `sleepHours` array
       const totalSleep = editSleepHours;
       finalData.sleepHours = entryToUpdate.sleepHours.map(s => ({
         ...s,
@@ -194,29 +209,40 @@ const Profile: React.FC = () => {
         throw new Error("Failed to update entry");
       }
 
-      alert("Entry updated successfully!");
+      // alert("Entry updated successfully!");
       setIsEditing(false);
       setSelectedEntry(null);
-      fetchSleepData(); // refresh chart
+      fetchSleepData(); // refresh data
     } catch (error) {
       console.error("Update error:", error);
       alert("Error updating entry");
     }
-  };
+  }, [editSummary, editSleepHours, selectedEntry, sleepData, fetchSleepData]);
 
-  const CustomTooltip: React.FC<TooltipProps<number, string>> = ({ active, payload }) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload as ChartData;
-      return (
-        <div className="bg-gray-800 p-3 rounded-lg border border-gray-600 shadow-lg">
-          <p className="text-white font-semibold">{`Date: ${data.formattedDate}`}</p>
-          <p className="text-white">{`Sleep: ${data.sleepHours} hours`}</p>
-          <p className="text-gray-300 text-sm">{`Click to view summary`}</p>
-        </div>
-      );
-    }
-    return null;
-  };
+  // Memoized custom tooltip component
+  const CustomTooltip = useMemo(() => {
+    const TooltipComponent: React.FC<TooltipProps<number, string>> = ({ active, payload }) => {
+      if (active && payload && payload.length) {
+        const data = payload[0].payload as ChartData;
+        return (
+          <div className="bg-gray-800 p-3 rounded-lg border border-gray-600 shadow-lg">
+            <p className="text-white font-semibold">{`Date: ${data.formattedDate}`}</p>
+            <p className="text-white">{`Sleep: ${data.sleepHours} hours`}</p>
+            <p className="text-gray-300 text-sm">{`Click to view summary`}</p>
+          </div>
+        );
+      }
+      return null;
+    };
+    return TooltipComponent;
+  }, []);
+
+  const handleRetry = useCallback(() => {
+    setError(null);
+    setLoading(true);
+    fetchUserData();
+    fetchSleepData();
+  }, [fetchUserData, fetchSleepData]);
 
   if (loading) {
     return (
@@ -232,12 +258,7 @@ const Profile: React.FC = () => {
       <div className="flex flex-col items-center justify-center text-center px-4 py-10 min-h-full bg-black ">
         <p className="text-red-400 text-xl">{error}</p>
         <button
-          onClick={() => {
-            setError(null);
-            setLoading(true);
-            fetchUserData();
-            fetchSleepData();
-          }}
+          onClick={handleRetry}
           className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-300"
         >
           Retry
@@ -431,30 +452,24 @@ const Profile: React.FC = () => {
         </div>
 
         {/* Summary Statistics */}
-        {chartData.length > 0 && (
+        {statistics && (
           <div className="bg-gradient-to-br from-slate-800 via-gray-950 to-slate-800 border border-slate-600 rounded-xl p-6 shadow-xl ">
             <h3 className="text-2xl font-bold text-center mb-4">Sleep Statistics</h3>
             <div className="grid md:grid-cols-4 gap-4 text-center">
               <div className="bg-gray-800 rounded-lg p-4">
-                <p className="text-2xl font-bold text-blue-400">{chartData.length}</p>
+                <p className="text-2xl font-bold text-blue-400">{statistics.totalDays}</p>
                 <p className="text-gray-300 text-sm">Total Days</p>
               </div>
               <div className="bg-gray-800 rounded-lg p-4">
-                <p className="text-2xl font-bold text-green-400">
-                  {chartData.filter(d => d.color === '#10B981').length}
-                </p>
+                <p className="text-2xl font-bold text-green-400">{statistics.optimalDays}</p>
                 <p className="text-gray-300 text-sm">Optimal Days</p>
               </div>
               <div className="bg-gray-800 rounded-lg p-4">
-                <p className="text-2xl font-bold text-yellow-400">
-                  {(chartData.reduce((sum, d) => sum + d.sleepHours, 0) / chartData.length).toFixed(1)}h
-                </p>
+                <p className="text-2xl font-bold text-yellow-400">{statistics.averageSleep}h</p>
                 <p className="text-gray-300 text-sm">Average Sleep</p>
               </div>
               <div className="bg-gray-800 rounded-lg p-4">
-                <p className="text-2xl font-bold text-purple-400">
-                  {Math.round((chartData.filter(d => d.color === '#10B981').length / chartData.length) * 100)}%
-                </p>
+                <p className="text-2xl font-bold text-purple-400">{statistics.successRate}%</p>
                 <p className="text-gray-300 text-sm">Success Rate</p>
               </div>
             </div>
