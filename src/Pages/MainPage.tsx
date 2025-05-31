@@ -89,16 +89,16 @@ const MainPage = ({isLoggedIn}: MainPageProps) => {
     })
       .then((response) => {
         if (!response.ok) {
-          throw new Error("Failed to create entry");
+          console.log("Failed to create entry");
         }
         return response.json();
       })
-      .then((data) => {
-        console.log("Entry creation successful:", data);
+      .then(() => {
+        
       })
       .catch((error) => {
         console.error("Error :", error);
-        alert("Unable to create entry");
+        // alert("Unable to create entry");
       });
     };
 

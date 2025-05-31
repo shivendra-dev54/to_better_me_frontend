@@ -25,8 +25,8 @@ const SignUp = () => {
         }
         return response.json();
       })
-      .then((data) => {
-        console.log("Sign up successful:", data);
+      .then(() => {
+        // console.log("Sign up successful:", data);
         alert("Account created successfully!");
         navigate("/sign_in");
       })

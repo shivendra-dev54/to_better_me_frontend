@@ -184,10 +184,11 @@ const Profile: React.FC = () => {
         return;
       }
 
-      const finalData: { date: string; summary: string; sleepHours: SleepHour[] } = {
+      const finalData: { date: string; summary: string; sleepHours: SleepHour[]; id: string } = {
         date: new Date(entryToUpdate.date).toISOString(),
         summary: editSummary,
         sleepHours: [], 
+        id: entryToUpdate._id
       };
 
       const totalSleep = editSleepHours;
@@ -196,7 +197,7 @@ const Profile: React.FC = () => {
         end: new Date(new Date(s.start).getTime() + (totalSleep / entryToUpdate.sleepHours.length) * 3600000).toISOString(),
       })); 
 
-      const response = await fetch(`${baseUrl}/api/user/update_entry/${entryToUpdate._id}`, {
+      const response = await fetch(`${baseUrl}/api/user/update_entry`, {
         method: "PUT",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -206,6 +207,7 @@ const Profile: React.FC = () => {
       });
 
       if (!response.ok) {
+        console.log("error:", response);
         throw new Error("Failed to update entry");
       }
 
